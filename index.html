@@ -1,0 +1,122 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Lojinha do Dinheirinho</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff8e7;--ink:#0b3d4a;--card:#fff;--a:#ff6b57;--b:#ffd23f;--line:#f0dfae}
+@media(prefers-color-scheme:dark){:root{--bg:#10282f;--ink:#fff3d0;--card:#173a44;--line:#2c5663}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 Fredoka,system-ui,sans-serif;padding:env(safe-area-inset-top) 12px calc(60px + env(safe-area-inset-bottom))}
+main{max-width:900px;margin:0 auto}
+h1{font-size:1.5rem;margin:12px 0 6px}
+.top{background:var(--b);color:#0b3d4a;border-radius:18px;padding:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.top b{font-size:1.4rem}
+.btn{border:0;border-radius:12px;background:var(--a);color:#fff;font:600 .95rem Fredoka,system-ui,sans-serif;padding:9px 13px;cursor:pointer}
+.btn.alt{background:#0b3d4a}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:focus-visible,input:focus-visible{outline:3px solid #0b3d4a;outline-offset:2px}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 0}
+.tabs button{flex:none;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:20px;padding:7px 13px;font:600 .9rem Fredoka,system-ui,sans-serif;cursor:pointer}
+.tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
+.card{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.card .i{font-size:2rem}.card small{opacity:.75}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+input{font:inherit;padding:8px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink);width:100%}
+.bar{height:8px;border-radius:5px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;background:var(--a)}
+h2{font-size:1.1rem;margin:14px 0 6px}
+#al p{background:#ffe1dc;color:#7a1d10;border:2px solid var(--a);border-radius:12px;padding:8px 10px;margin:8px 0 0;font-weight:600}
+#log{max-height:180px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--card);border:2px dashed var(--a);border-radius:16px;padding:10px;margin-top:16px}
+#log p{margin:0 0 6px;font-size:.9rem}
+</style></head><body><main>
+<h1>🧸 Lojinha do Dinheirinho</h1>
+<div class="top" id="top"></div>
+<section id="al" aria-live="polite"></section>
+<nav class="tabs" id="tabs"></nav>
+<section id="v"></section>
+<h2>📌 Quadro de avisos</h2>
+<section id="log" tabindex="0" aria-label="Quadro de avisos"></section>
+</main>
+<script>
+const $=q=>document.querySelector(q),R=n=>'R$ '+Math.round(n).toLocaleString('pt-BR');
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// [aba, ícone, nome, preço, tipo(c=consumível,d=desgasta,p=permanente,v=veículo,t=viagem), usos, unidade]
+const I=[
+['moto','🛵','Scooter 125cc',9000,'v'],['moto','🏍️','Honda CG 160',16000,'v'],['moto','🏍️','Yamaha MT-03',32000,'v'],['moto','🏍️','Kawasaki Ninja 400',45000,'v'],['moto','🏍️','Harley-Davidson',95000,'v'],['moto','🏍️','Ducati Panigale (importada)',180000,'v'],['moto','🪖','Capacete',400,'d'],
+['carro','🚗','Fiat Mobi',70000,'v'],['carro','🚙','Toyota Hilux',330000,'v'],['carro','🚘','Tesla Model 3 (importado)',350000,'v'],['carro','🚙','BMW X5 (importado)',620000,'v'],['carro','🚘','Mercedes Classe C (importado)',400000,'v'],['carro','🏎️','Porsche 911 (importado)',900000,'v'],['carro','🏎️','Ferrari Roma (importada)',1800000,'v'],['carro','🏎️','Lamborghini Urus (importado)',2500000,'v'],
+['mercado','🦴','Ração (saco)',120,'c',50,'porção'],['mercado','💊','Remédio de cachorro',60,'c',10,'dose'],['mercado','💊','Remédio de criança',45,'c',12,'dose'],['mercado','🧻','Lenços umedecidos',18,'c',80,'lenço'],['mercado','🍱','Comida (marmitas)',90,'c',10,'refeição'],['mercado','🍼','Leite em pó',55,'c',20,'mamadeira'],['mercado','📓','Caderno',25,'c',96,'folha'],['mercado','✏️','Caixa de lápis',20,'c',12,'lápis'],['mercado','🖍️','Giz de cera',12,'c',12,'cor'],['mercado','🎒','Mochila escolar',150,'d'],
+['brinq','🧸','Ursinho de pelúcia',60,'d'],['brinq','🚂','Trenzinho',90,'d'],['brinq','🪆','Boneca',80,'d'],['brinq','⚽','Bola',50,'d'],['brinq','🧱','Blocos de montar',120,'d'],['brinq','🎮','PlayStation 5',3800,'p'],['brinq','🎮','Xbox Series X',3600,'p'],['brinq','🕹️','Nintendo Switch',2200,'p'],['brinq','💿','Minecraft',130,'p'],['brinq','💿','Super Mario Bros. Wonder',280,'p'],['brinq','💿','Mario Kart 8',300,'p'],['brinq','💿','Zelda: Tears of the Kingdom',320,'p'],['brinq','💿','Pokémon Scarlet',290,'p'],['brinq','💿','EA Sports FC 26',350,'p'],['brinq','💿','Roblox (Robux)',50,'p'],
+['roupa','👕','Camiseta básica',50,'p'],['roupa','👖','Calça jeans Levi\'s',350,'p'],['roupa','👟','Nike Air Max',900,'p'],['roupa','👟','Adidas Superstar',500,'p'],['roupa','👟','Puma Suede',400,'p'],['roupa','👟','Vans Old Skool',450,'p'],['roupa','🥿','Converse All Star',300,'p'],['roupa','🩴','Havaianas',40,'p'],['roupa','👔','Camisa social',180,'p'],['roupa','👗','Vestido adulto',260,'p'],['roupa','🧥','Jaqueta Lacoste',700,'p'],['roupa','🕶️','Ray-Ban',800,'p'],['roupa','🧒','Roupa infantil',80,'p'],['roupa','👞','Sapato social adulto',380,'p'],
+['bebe','🛒','Carrinho de bebê',900,'p'],['bebe','🛏️','Berço',700,'p'],['bebe','🚗','Bebê conforto',500,'p'],['bebe','🛁','Banheira',120,'p'],['bebe','🎶','Chocalho',25,'d'],['bebe','🦷','Mordedor',20,'d'],['bebe','🧸','Móbile musical',70,'d'],['bebe','🎾','Bolinha do cachorro',15,'d'],['bebe','🦴','Osso de borracha',30,'d'],['bebe','🪢','Corda de puxar',20,'d'],['bebe','🐕','Pelúcia do cachorro',35,'d'],
+['viagem','🗼','Paris, França',18000,'t'],['viagem','🗽','Nova York, EUA',16000,'t'],['viagem','🏯','Tóquio, Japão',22000,'t'],['viagem','🏛️','Roma, Itália',15000,'t'],['viagem','🎡','Londres, Inglaterra',17000,'t'],['viagem','🏖️','Cancún, México',12000,'t'],['viagem','🕌','Dubai, Emirados',25000,'t'],['viagem','🏝️','Maldivas',40000,'t'],['viagem','🔺','Cairo, Egito',14000,'t'],['viagem','🦘','Sydney, Austrália',28000,'t'],['viagem','🐢','Fernando de Noronha',9000,'t'],['viagem','⛰️','Gramado, Brasil',3500,'t'],['viagem','🌴','Rio de Janeiro, Brasil',2500,'t'],
+['roupa','👟','Air Jordan 1 (Jordan)',1300,'p'],['roupa','👟','Air Jordan 4 (Jordan)',1900,'p'],['roupa','👟','Nike Dunk Low',850,'p'],['roupa','👟','New Balance 574',600,'p'],['roupa','👟','Asics Gel-Kayano',900,'p'],['roupa','👟','Olympikus Corre',250,'p'],['roupa','👟','Fila Disruptor',450,'p'],['roupa','👟','Reebok Classic',380,'p'],['roupa','🧥','Moletom Nike',420,'p'],['roupa','👕','Polo Ralph Lauren',500,'p'],['roupa','👕','Camiseta Calvin Klein',220,'p'],['roupa','🧥','Jaqueta Tommy Hilfiger',900,'p'],['roupa','🧢','Boné New Era',250,'p'],['roupa','⌚','Relógio Casio',400,'p'],['roupa','👟','Gucci Ace (importado)',6500,'p'],['roupa','👜','Bolsa Louis Vuitton (importada)',12000,'p'],
+['mercado','🐈','Ração Whiskas (gato)',70,'c',40,'porção'],['mercado','🐕','Ração Pedigree',130,'c',50,'porção'],['mercado','🐈','Areia sanitária',35,'c',20,'troca'],['mercado','💊','Remédio de gato',60,'c',10,'dose'],['mercado','🍼','Leite Ninho',60,'c',20,'mamadeira'],['mercado','📓','Caderno Tilibra',32,'c',96,'folha'],['mercado','✏️','Lápis Faber-Castell',28,'c',12,'lápis'],
+['brinq','🧱','LEGO Classic',300,'d'],['brinq','👧','Barbie',110,'d'],['brinq','🏎️','Hot Wheels (pista)',140,'d'],
+['bebe','🐈','Arranhador de gato',90,'d'],['bebe','🐭','Ratinho de brinquedo',15,'d'],['bebe','🐈','Pelúcia de gato',35,'d'],['bebe','🛏️','Caminha de pet',80,'d'],['bebe','🛒','Carrinho Chicco',1800,'p'],['bebe','🚗','Bebê conforto Chicco',800,'p']];
+const TABS={moto:'🏍️ Motos',carro:'🚗 Carros',mercado:'🛒 Mercado',brinq:'🎮 Brinquedos e games',roupa:'👟 Roupas e marcas',bebe:'👶 Bebê e pet',viagem:'✈️ Viagens',fam:'💍 Família',est:'🎓 Estudos',bag:'🎒 Mochila'};
+const CUR=[['Medicina',12000],['Engenharia',8000],['Direito',7000],['Odontologia',9000],['Pedagogia',3500],['Arquitetura',6500],['Psicologia',5500],['Enfermagem',4500],['Medicina Veterinária',6000],['Ciência da Computação',9000],['Administração',5500],['Contabilidade',5000],['Jornalismo',4000],['Design',4500],['Nutrição',4000],['Fisioterapia',4500],['Farmácia',5500],['Agronomia',7500],['Música',3500],['Piloto de avião',15000]];
+const JOBS=[['Atendente',1500],['Entregador',1800],['Vendedor',2500],['Cozinheiro',2000],['Motorista de app',2200],['Mecânico',3000],['Barbeiro',2800],['Segurança',2400]];
+const D={m:2500,age:18,nome:'Você',casado:'',marr:false,filho:null,fi:0,pet:null,sick:false,psick:false,fg:'filho',job:'Atendente',pay:1500,dip:[],st:null,inv:[],trips:[],log:['Bem-vindo à lojinha! Trabalhe para ganhar dinheiro.']};
+let s,tab='moto';
+try{s=Object.assign({},D,JSON.parse(localStorage.getItem('lojinha2')||'{}'))}catch(e){s=Object.assign({},D)}
+if(s.dog&&!s.pet)s.pet={t:'cachorro',n:s.dog};
+const save=()=>{try{localStorage.setItem('lojinha2',JSON.stringify(s))}catch(e){}};
+const say=t=>{s.log.unshift(t);s.log=s.log.slice(0,60)};
+const fase=()=>s.fi<1?'recém-nascido(a)':s.fi<3?'bebê':s.fi<12?'criança':s.fi<18?'adolescente':'adulto(a)';
+const full=()=>s.marr&&s.casado?s.nome+' '+s.casado:s.nome;
+function buy(k){const x=I[k];if(s.m<x[3])return say('Dinheiro insuficiente para '+x[2]+'.'),r();
+ s.m-=x[3];if(x[4]=='t'){s.trips.push(x[2]);say('✈️ Você viajou para '+x[2]+'! Que passeio.')}
+ else{s.inv.push({i:k,u:x[4]=='c'?x[5]:x[4]=='d'?100:1});say('Comprou '+x[2]+' por '+R(x[3])+'.')}r()}
+function use(n){const e=s.inv[n],x=I[e.i];
+ if(x[4]=='c'){e.u--;say('Usou 1 '+x[6]+' de '+x[2]+'. Restam '+e.u+'.');heal(x[2]);if(!e.u){s.inv.splice(n,1);say(x[2]+' acabou. Hora de comprar outro!')}}
+ else{e.u=Math.max(0,e.u-20);say('Brincou com '+x[2]+'. Desgaste: '+(100-e.u)+'%.');if(!e.u)say('💔 '+x[2]+' quebrou! Jogue fora e compre um novo.')}r()}
+function val(e){const x=I[e.i],f=x[4]=='c'?e.u/x[5]:x[4]=='d'?e.u/100:1;return x[3]*(x[4]=='v'?.7:.6)*f*(e.br?.5:1)}
+function sell(n){const e=s.inv[n],v=val(e);s.m+=v;say((v?'Vendeu ':'Jogou fora ')+I[e.i][2]+(v?' por '+R(v)+'.':'.'));s.inv.splice(n,1);r()}
+function work(){s.m+=s.pay;say('Trabalhou como '+s.job+' e recebeu '+R(s.pay)+'.');events(.08);r()}
+function year(){if(s.age>=100)return;s.age++;say('🎂 Um ano se passou. Idade: '+s.age+'.');if(s.age>=100)say('🎉 Você fez 100 anos! Hora de passar o bastão.');if(s.filho){s.fi++;say('🎈 '+s.filho+' agora tem '+s.fi+(s.fi==1?' ano':' anos')+' ('+fase()+').')}
+ s.inv.forEach(e=>{if(I[e.i][4]=='d'&&e.u){e.u=Math.max(0,e.u-15);if(!e.u)say('💔 '+I[e.i][2]+' se desgastou com o tempo e quebrou.')}});
+ if(s.st){s.st.left--;if(s.st.left>0)say('📚 '+s.st.c+': faltam '+s.st.left+' ano(s) de faculdade.');else{s.dip.push(s.st.c);say('🎓 Parabéns! Você se formou em '+s.st.c+'. Agora pode mudar de profissão.');s.st=null}}
+ if(s.sick){const c=Math.min(s.m,400);s.m-=c;s.sick=false;say('🏥 '+s.filho+' ficou sem remédio e foi ao hospital: -'+R(c))}
+ if(s.psick){const c=Math.min(s.m,300);s.m-=c;s.psick=false;say('🏥 '+s.pet.n+' ficou sem remédio e foi ao veterinário: -'+R(c))}
+ events(.5);r()}
+function fj(i){const j=JOBS[i];s.job=j[0];s.pay=j[1];say('Nova profissão: '+j[0]+'! Salário de '+R(j[1])+' por mês.');r()}
+function study(c){if(s.st||s.dip.includes(c))return;if(s.m<2000)return say('A matrícula custa R$ 2.000.'),r();s.m-=2000;s.st={c,left:4};say('📚 Começou a faculdade de '+c+'. São 4 anos: avance os anos para estudar.');r()}
+function job(c){const j=CUR.find(a=>a[0]==c);s.job=c;s.pay=j[1];say('Nova profissão: '+c+'! Salário de '+R(j[1])+' por mês.');r()}
+function marry(){if(s.marr)return;if(s.m<3000)return say('O casamento custa R$ 3.000.'),r();s.m-=3000;s.marr=true;say('💍 Casaram! Agora você se chama '+full()+'.');r()}
+function kid(g){if(s.filho||s.m<2000)return say(s.filho?'Você já tem um filho(a).':'Ter um filho(a) custa R$ 2.000.'),r();s.m-=2000;s.filho='Bebê';s.fg=g;s.fi=0;say('👶 Seu bebê nasceu! Escolha um nome na aba Família.');r()}
+function adopt(t){if(s.pet||s.m<300)return;s.m-=300;s.pet={t,n:t=='gato'?'Mimi':'Totó'};say((t=='gato'?'🐈':'🐕')+' Você adotou um '+t+'!');r()}
+function setCas(v){s.casado=v.trim();if(s.marr)say('Nome de casado(a) atualizado: '+full());r()}
+function divorce(){if(!s.marr)return;const c=s.dip.includes('Direito')?300:1500;if(!confirm('Terminar o relacionamento? Você precisa pagar o advogado: '+R(c)+(c==300?' (desconto: você é formado(a) em Direito)':'')+'.'))return;if(s.m<c)return say('⚖️ Você não tem dinheiro para pagar o advogado ('+R(c)+').'),r();s.m-=c;s.marr=false;s.casado='';say('⚖️ Você pagou '+R(c)+' ao advogado. Relacionamento encerrado, você voltou a se chamar '+s.nome+'.');r()}
+const rp=e=>I[e.i][3]*.08;
+function fix(n){const e=s.inv[n],c=rp(e);if(s.m<c)return say('Dinheiro insuficiente para o conserto ('+R(c)+').'),r();s.m-=c;e.br=0;say('🔧 '+I[e.i][2]+' consertado por '+R(c)+'.');r()}
+function heal(nm){if(nm=='Remédio de criança'){if(s.sick){s.sick=false;say('💚 '+s.filho+' melhorou!')}else say('Ninguém precisa desse remédio agora.')}
+ else if(nm.startsWith('Remédio de ')){if(s.pet&&nm.endsWith(s.pet.t)&&s.psick){s.psick=false;say('💚 '+s.pet.n+' melhorou!')}else say('Esse remédio não é necessário agora.')}}
+function events(p){
+ if(s.filho&&!s.sick&&Math.random()<p){s.sick=true;say('🤒 AVISO: '+s.filho+' ficou doente! Use Remédio de criança (aba Mercado).')}
+ if(s.pet&&!s.psick&&Math.random()<p){s.psick=true;say('🤒 AVISO: '+s.pet.n+' está doente! Use Remédio de '+s.pet.t+' (aba Mercado).')}
+ const vs=s.inv.filter(e=>I[e.i][4]=='v'&&!e.br);
+ if(vs.length&&Math.random()<p/2){const e=vs[Math.floor(Math.random()*vs.length)];e.br=1;say('🔧 AVISO: '+I[e.i][2]+' quebrou! Conserte na Mochila ('+R(rp(e))+').')}}
+function heir(){if(!s.filho)return;const nm=s.filho,ag=s.fi;Object.assign(s,{nome:nm,age:ag,casado:'',marr:false,filho:null,fi:0,fg:'filho',job:'Atendente',pay:1500,dip:[],st:null,trips:[],sick:false});say('👑 Agora você é '+nm+', com '+ag+' anos. Herdou o dinheiro, os bens e o pet da família.');r()}
+function resetAll(){if(!confirm('Resetar tudo? Todo o progresso será apagado.'))return;s=JSON.parse(JSON.stringify(D));s.log=['🔄 Jogo reiniciado. Bem-vindo de volta!'];tab='moto';r()}
+const set=(k,v)=>{s[k]=v.trim()||D[k]||'Sem nome';save();say('Nome atualizado: '+s[k]);r()};
+function card(k){const x=I[k];return `<div class="card"><span class="i">${x[1]}</span><b>${x[2]}</b><small>${R(x[3])}${x[4]=='c'?' · '+x[5]+' '+x[6]+'s':''}${x[4]=='d'?' · desgasta':''}</small><button class="btn" ${s.m<x[3]?'disabled':''} onclick="buy(${k})">Comprar</button></div>`}
+function bag(){if(!s.inv.length&&!s.trips.length)return '<p>Mochila vazia. Visite as lojas!</p>';
+ let h='<div class="grid">'+s.inv.map((e,n)=>{const x=I[e.i],c=x[4]=='c',d=x[4]=='d',v=val(e);
+ return `<div class="card"><span class="i">${x[1]}</span><b>${x[2]}</b>`+(c?`<small>${e.u} de ${x[5]} ${x[6]}s</small><div class="bar"><i style="width:${e.u/x[5]*100}%"></i></div>`:d?`<small>${e.u?'Durabilidade '+e.u+'%':'💔 Quebrado'}</small><div class="bar"><i style="width:${e.u}%"></i></div>`:'')+
+ `${e.br?'<small>🔧 Quebrado: precisa de conserto</small>':''}<div class="row">${e.br?`<button class="btn" onclick="fix(${n})">🔧 Consertar ${R(rp(e))}</button>`:''}${c||(d&&e.u)?`<button class="btn" onclick="use(${n})">${c?'Usar 1':'Brincar'}</button>`:''}<button class="btn alt" onclick="sell(${n})">${v?'Vender '+R(v):'Jogar fora'}</button></div></div>`}).join('')+'</div>';
+ if(s.trips.length)h+='<h2>🌍 Viagens feitas</h2><p>'+s.trips.map(esc).join(' · ')+'</p>';return h}
+function view(){
+ if(tab=='bag')return bag();
+ if(tab=='est')return `<p>${s.st?'📚 Cursando '+s.st.c+': faltam '+s.st.left+' ano(s).':'Escolha um emprego sem faculdade ou faça 4 anos de faculdade (matrícula R$ 2.000) para ganhar mais. Direito dá desconto no advogado do divórcio.'}</p><div class="grid">`+CUR.map(c=>`<div class="card"><b>${c[0]}</b><small>Salário ${R(c[1])}/mês</small>${s.dip.includes(c[0])?`<button class="btn" ${s.job==c[0]?'disabled':''} onclick="job('${c[0]}')">🎓 Trabalhar como ${c[0]}</button>`:`<button class="btn" ${s.st?'disabled':''} onclick="study('${c[0]}')">Estudar 4 anos</button>`}</div>`).join('')+'</div><h2>🧰 Empregos sem faculdade</h2><div class="grid">'+JOBS.map((j,i)=>`<div class="card"><b>${j[0]}</b><small>Salário ${R(j[1])}/mês</small><button class="btn" ${s.job==j[0]?'disabled':''} onclick="fj(${i})">Trabalhar como ${j[0]}</button></div>`).join('')+'</div>';
+ if(tab=='fam')return `<div class="grid"><div class="card"><b>🧑 Seu nome</b><input id="n1" value="${esc(s.nome)}" onchange="set('nome',this.value)" aria-label="Seu nome"></div>
+ <div class="card"><b>💍 Casamento</b><small>${s.marr?'Casado(a). Nome: '+esc(full()):'R$ 3.000. Escolha o nome de casado(a):'}</small><input value="${esc(s.casado)}" placeholder="Sobrenome de casado(a)" onchange="setCas(this.value)" aria-label="Nome de casado"><div class="row">${s.marr?'<button class="btn alt" onclick="divorce()">💔 Terminar relacionamento (advogado)</button>':'<button class="btn" onclick="marry()">Casar</button>'}</div></div>
+ <div class="card"><b>👶 ${s.filho?(s.fg=='filha'?'Filha':'Filho'):'Filho(a)'}</b>${s.filho?`<input value="${esc(s.filho)}" onchange="set('filho',this.value)" aria-label="Nome do filho"><small>${s.fi} ${s.fi==1?'ano':'anos'} · ${fase()}</small>`:'<small>R$ 2.000</small><div class="row"><button class="btn" onclick="kid(\'filho\')">Ter um filho</button><button class="btn" onclick="kid(\'filha\')">Ter uma filha</button></div>'}</div>
+ <div class="card"><b>🐾 Pet${s.pet?' · '+(s.pet.t=='gato'?'🐈 Gato':'🐕 Cachorro'):''}</b>${s.pet?`<input value="${esc(s.pet.n)}" onchange="s.pet.n=this.value.trim()||s.pet.n;save();r()" aria-label="Nome do pet">`:'<small>R$ 300</small><div class="row"><button class="btn" onclick="adopt(\'cachorro\')">🐕 Adotar cachorro</button><button class="btn" onclick="adopt(\'gato\')">🐈 Adotar gato</button></div>'}</div></div>`;
+ return '<div class="grid">'+I.map((x,k)=>x[0]==tab?card(k):'').join('')+'</div>'}
+function r(){save();
+ const old=s.age>=100;
+ $('#top').innerHTML=`<div><b>${R(s.m)}</b><br><span>${esc(full())} · ${s.age} anos · ${esc(s.job)}</span></div><div class="row">${old?(s.filho?`<button class="btn alt" onclick="heir()">👑 Assumir a vida de ${esc(s.filho)}</button>`:''):`<button class="btn alt" onclick="work()">💼 Trabalhar +${R(s.pay)}</button><button class="btn alt" onclick="year()">📅 Avançar 1 ano</button>`}<button class="btn" onclick="resetAll()">🔄 Resetar tudo</button></div>`;
+ const a=[];if(s.sick)a.push('🤒 '+esc(s.filho)+' está doente! Use Remédio de criança.');if(s.psick)a.push('🤒 '+esc(s.pet.n)+' está doente! Use Remédio de '+s.pet.t+'.');s.inv.forEach(e=>{if(e.br)a.push('🔧 '+esc(I[e.i][2])+' quebrou! Conserte na Mochila.')});if(old)a.push('🎉 Você fez 100 anos! '+(s.filho?'Assuma a vida de '+esc(s.filho)+' para continuar.':'Sem herdeiros: resete para recomeçar.'));
+ $('#al').innerHTML=a.map(x=>'<p>'+x+'</p>').join('');
+ $('#tabs').innerHTML=Object.keys(TABS).map(k=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';r()">${TABS[k]}</button>`).join('');
+ $('#v').innerHTML=view();
+ $('#log').innerHTML=s.log.map(t=>'<p>'+esc(t)+'</p>').join('')}
+r();
+</script></body></html>
